@@ -28,17 +28,21 @@ HYPERPARAMS_PATH = os.path.join(
 FAILURE_DIR = os.path.join(CONTAINER_DIR_PREFIX, "failure")
 
 TARGET_VARIABLE = "class"
+MODEL_OBJECTIVE = "multi:softprob"
+EVAL_METRIC = "merror"
 
 ############################
 ## Main Training Workflow ##
 ############################
 
 
-def train(hyperparams_path=None):
+def train(
+    input_data_dir, model_save_dir, hyperparams_path=None, failure_output_dir=None
+):
     logging.info("Starting training.")
 
     logging.info("Getting training data.")
-    train_fname = os.path.join(DATA_DIR, "train.csv")
+    train_fname = os.path.join(DATA_DIR, "iris.csv")
     data = pd.read_csv(train_fname)
     features = data.drop(TARGET_VARIABLE, axis=1)
     targets = data[TARGET_VARIABLE]
@@ -63,10 +67,14 @@ def train(hyperparams_path=None):
     joblib.dump(label_encoder, os.path.join(SAVE_DIR, "label_encoder.joblib"))
 
     logging.info("Training model.")
-    model = XGBClassifier(**hyperparams)
+    model = XGBClassifier(
+        **hyperparams,
+        objective=MODEL_OBJECTIVE,
+        eval_metric=EVAL_METRIC,
+        use_label_encoder=False,
+    )
     model.fit(scaled, targets)
-    logging.info("Model Performance Metrics:")
-    logging.info("Accuracy: {}".format(model.score(scaled, targets)))
+    logging.info(f"Model Performance ({EVAL_METRIC}) = {model.score(scaled, targets)}")
     joblib.dump(model, os.path.join(SAVE_DIR, "model.joblib"))
 
     logging.info("Training complete.")
@@ -127,9 +135,9 @@ def cast_dtypes_for_hyperparameters(hyperparams):
             pass
         return hyperparams_dict
 
-    for model in hyperparams.keys():
-        for k, v in hyperparams[model].items():
-            hyperparams[model] = cast(hyperparams[model], k)
+    for k, v in hyperparams.items():
+        hyperparams = cast(hyperparams, k)
+
     return hyperparams
 
 

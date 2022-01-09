@@ -2,7 +2,7 @@ import json
 import io
 import pandas as pd
 import flask
-from inference import predict
+import inference
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -20,7 +20,7 @@ def ping():
 
 
 @app.route("/invocations", methods=["GET", "POST"])
-def predict():
+def invocations():
     logging.debug("Request registered. Starting prediction.")
     if flask.request.content_type == "application/json":
         logging.debug("Parsing the body of the request.")
@@ -40,7 +40,7 @@ def predict():
         )
 
     logging.debug("Making predictions on the data now.")
-    result = predict(df)
+    result = inference.predict(df)
     logging.debug("Prediction successful. Responding to request.")
 
     return flask.Response(

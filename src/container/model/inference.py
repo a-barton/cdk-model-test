@@ -6,7 +6,7 @@ def predict(df):
     model, scaler, label_encoder = load_model()
     scaled = scaler.transform(df)
     predictions = model.predict(scaled)
-    return label_encoder.inverse_transform(predictions)
+    return pd.DataFrame(label_encoder.inverse_transform(predictions))
 
 
 def load_model():

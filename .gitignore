@@ -1,3 +1,6 @@
+# Custom ignores
+tests/test_container_mount/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
