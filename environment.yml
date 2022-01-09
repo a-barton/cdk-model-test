@@ -1,0 +1,4 @@
+name: cmt
+channels:
+  - defaults
+prefix: /home/mantid/miniconda3/envs/cmt
