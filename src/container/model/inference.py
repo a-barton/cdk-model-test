@@ -1,14 +1,16 @@
 import joblib
 import pandas as pd
 
-def predict_topics(text):
-    lda, count_vectorizer, topic_names = load_model()
-    features = count_vectorizer.transform([text])
-    preds = pd.DataFrame(lda.transform(features), columns=topic_names)
-    return preds
+
+def predict(df):
+    model, scaler, label_encoder = load_model()
+    scaled = scaler.transform(df)
+    predictions = model.predict(scaled)
+    return label_encoder.inverse_transform(predictions)
+
 
 def load_model():
-    lda = joblib.load('model/model.joblib')
-    count_vectorizer = joblib.load('model/count_vectorizer.joblib')
-    topic_names = joblib.load('model/topic_names.joblib')
-    return lda, count_vectorizer, topic_names
+    model = joblib.load("/opt/ml/model/model.joblib")
+    scaler = joblib.load("/opt/ml/model/scaler.joblib")
+    label_encoder = joblib.load("/opt/ml/model/label_encoder.joblib")
+    return model, scaler, label_encoder
