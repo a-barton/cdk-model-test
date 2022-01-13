@@ -1,0 +1,32 @@
+{
+  "version": "15.0.0",
+  "files": {
+    "0d810c30611231aa6e160698a6d2b9efa6a4375869694b6add836bd66b50744f": {
+      "source": {
+        "path": "SagemakerStack.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "0d810c30611231aa6e160698a6d2b9efa6a4375869694b6add836bd66b50744f.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {
+    "d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213": {
+      "source": {
+        "directory": "asset.d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213"
+      },
+      "destinations": {
+        "current_account-current_region": {
+          "repositoryName": "cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}",
+          "imageTag": "d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-image-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  }
+}
