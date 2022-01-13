@@ -54,12 +54,5 @@ class SagemakerStack(Stack):
 
 
 app = App()
-SagemakerStack(
-    app,
-    "SagemakerStack",
-    env=Environment(
-        account=os.environ["CDK_DEFAULT_ACCOUNT"],
-        region=os.environ["CDK_DEFAULT_REGION"],
-    ),
-)
+SagemakerStack(app, "SagemakerStack")
 app.synth()

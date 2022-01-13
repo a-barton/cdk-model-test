@@ -19,3 +19,9 @@ local-serve: container
 
 curl-local-test:
 	curl -X POST localhost:8080/invocations -H 'Content-Type: application/json' -d '{"sepal_length": "2.1", "sepal_width": "0.3", "petal_length": "0.7", "petal_width": "0.1"}'
+
+cdk-bootstrap:
+	cdk bootstrap --profile default
+
+cdk-deploy:
+	cdk deploy --profile cdk
