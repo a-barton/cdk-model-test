@@ -25,3 +25,6 @@ cdk-bootstrap:
 
 cdk-deploy:
 	cdk deploy --profile cdk
+
+cdk-destroy:
+	cdk destroy --profile cdk
