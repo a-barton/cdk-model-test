@@ -22,7 +22,7 @@ def ping():
 @app.route("/invocations", methods=["GET", "POST"])
 def invocations():
     logging.debug("Request registered. Starting prediction.")
-    if flask.request.content_type == "application/json":
+    if flask.request.content_type == "application/jsonlines":
         logging.debug("Parsing the body of the request.")
         data = flask.request.data.decode("utf-8")
         s = io.StringIO(data)
