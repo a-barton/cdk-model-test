@@ -1,7 +1,7 @@
 {
   "version": "15.0.0",
   "files": {
-    "16b1fa5d309112e0f323c1b83fc017dd3a4c4001e0c2ac8dcd80cf17b71dccf3": {
+    "74d38d6e70a9e3c3d17462f0f0cfee5a9e0cbfcec727cd9784a9c157f5649d5c": {
       "source": {
         "path": "SagemakerStack.template.json",
         "packaging": "file"
@@ -9,21 +9,21 @@
       "destinations": {
         "current_account-current_region": {
           "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
-          "objectKey": "16b1fa5d309112e0f323c1b83fc017dd3a4c4001e0c2ac8dcd80cf17b71dccf3.json",
+          "objectKey": "74d38d6e70a9e3c3d17462f0f0cfee5a9e0cbfcec727cd9784a9c157f5649d5c.json",
           "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
         }
       }
     }
   },
   "dockerImages": {
-    "d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213": {
+    "f60de15b7c8030c3135df990aeec2d56e75451ae468e56d2b8a3e327bf6b1e40": {
       "source": {
-        "directory": "asset.d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213"
+        "directory": "asset.f60de15b7c8030c3135df990aeec2d56e75451ae468e56d2b8a3e327bf6b1e40"
       },
       "destinations": {
         "current_account-current_region": {
           "repositoryName": "cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}",
-          "imageTag": "d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213",
+          "imageTag": "f60de15b7c8030c3135df990aeec2d56e75451ae468e56d2b8a3e327bf6b1e40",
           "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-image-publishing-role-${AWS::AccountId}-${AWS::Region}"
         }
       }

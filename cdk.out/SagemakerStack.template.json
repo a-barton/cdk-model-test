@@ -1,4 +1,15 @@
 {
+  "Parameters": {
+    "model": {
+      "Type": "String",
+      "Default": "cdk-model-test"
+    },
+    "BootstrapVersion": {
+      "Type": "AWS::SSM::Parameter::Value<String>",
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+    }
+  },
   "Resources": {
     "SageMakerExecutionRole7843F3B8": {
       "Type": "AWS::IAM::Role",
@@ -34,477 +45,6 @@
         "aws:cdk:path": "SagemakerStack/SageMakerExecutionRole/Resource"
       }
     },
-    "Vpc8378EB38": {
-      "Type": "AWS::EC2::VPC",
-      "Properties": {
-        "CidrBlock": "192.168.0.0/16",
-        "EnableDnsHostnames": true,
-        "EnableDnsSupport": true,
-        "InstanceTenancy": "default",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/Resource"
-      }
-    },
-    "VpcPublicSubnet1Subnet5C2D37C4": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "192.168.0.0/18",
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "AvailabilityZone": {
-          "Fn::Select": [
-            0,
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
-        "MapPublicIpOnLaunch": true,
-        "Tags": [
-          {
-            "Key": "aws-cdk:subnet-name",
-            "Value": "Public"
-          },
-          {
-            "Key": "aws-cdk:subnet-type",
-            "Value": "Public"
-          },
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/Subnet"
-      }
-    },
-    "VpcPublicSubnet1RouteTable6C95E38E": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/RouteTable"
-      }
-    },
-    "VpcPublicSubnet1RouteTableAssociation97140677": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPublicSubnet1RouteTable6C95E38E"
-        },
-        "SubnetId": {
-          "Ref": "VpcPublicSubnet1Subnet5C2D37C4"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/RouteTableAssociation"
-      }
-    },
-    "VpcPublicSubnet1DefaultRoute3DA9E72A": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPublicSubnet1RouteTable6C95E38E"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": {
-          "Ref": "VpcIGWD7BA715C"
-        }
-      },
-      "DependsOn": [
-        "VpcVPCGWBF912B6E"
-      ],
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/DefaultRoute"
-      }
-    },
-    "VpcPublicSubnet1EIPD7E02669": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {
-        "Domain": "vpc",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/EIP"
-      }
-    },
-    "VpcPublicSubnet1NATGateway4D7517AA": {
-      "Type": "AWS::EC2::NatGateway",
-      "Properties": {
-        "SubnetId": {
-          "Ref": "VpcPublicSubnet1Subnet5C2D37C4"
-        },
-        "AllocationId": {
-          "Fn::GetAtt": [
-            "VpcPublicSubnet1EIPD7E02669",
-            "AllocationId"
-          ]
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet1/NATGateway"
-      }
-    },
-    "VpcPublicSubnet2Subnet691E08A3": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "192.168.64.0/18",
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "AvailabilityZone": {
-          "Fn::Select": [
-            1,
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
-        "MapPublicIpOnLaunch": true,
-        "Tags": [
-          {
-            "Key": "aws-cdk:subnet-name",
-            "Value": "Public"
-          },
-          {
-            "Key": "aws-cdk:subnet-type",
-            "Value": "Public"
-          },
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/Subnet"
-      }
-    },
-    "VpcPublicSubnet2RouteTable94F7E489": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/RouteTable"
-      }
-    },
-    "VpcPublicSubnet2RouteTableAssociationDD5762D8": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPublicSubnet2RouteTable94F7E489"
-        },
-        "SubnetId": {
-          "Ref": "VpcPublicSubnet2Subnet691E08A3"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/RouteTableAssociation"
-      }
-    },
-    "VpcPublicSubnet2DefaultRoute97F91067": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPublicSubnet2RouteTable94F7E489"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "GatewayId": {
-          "Ref": "VpcIGWD7BA715C"
-        }
-      },
-      "DependsOn": [
-        "VpcVPCGWBF912B6E"
-      ],
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/DefaultRoute"
-      }
-    },
-    "VpcPublicSubnet2EIP3C605A87": {
-      "Type": "AWS::EC2::EIP",
-      "Properties": {
-        "Domain": "vpc",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/EIP"
-      }
-    },
-    "VpcPublicSubnet2NATGateway9182C01D": {
-      "Type": "AWS::EC2::NatGateway",
-      "Properties": {
-        "SubnetId": {
-          "Ref": "VpcPublicSubnet2Subnet691E08A3"
-        },
-        "AllocationId": {
-          "Fn::GetAtt": [
-            "VpcPublicSubnet2EIP3C605A87",
-            "AllocationId"
-          ]
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PublicSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PublicSubnet2/NATGateway"
-      }
-    },
-    "VpcPrivateSubnet1Subnet536B997A": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "192.168.128.0/18",
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "AvailabilityZone": {
-          "Fn::Select": [
-            0,
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
-        "MapPublicIpOnLaunch": false,
-        "Tags": [
-          {
-            "Key": "aws-cdk:subnet-name",
-            "Value": "Private"
-          },
-          {
-            "Key": "aws-cdk:subnet-type",
-            "Value": "Private"
-          },
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PrivateSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet1/Subnet"
-      }
-    },
-    "VpcPrivateSubnet1RouteTableB2C5B500": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PrivateSubnet1"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet1/RouteTable"
-      }
-    },
-    "VpcPrivateSubnet1RouteTableAssociation70C59FA6": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPrivateSubnet1RouteTableB2C5B500"
-        },
-        "SubnetId": {
-          "Ref": "VpcPrivateSubnet1Subnet536B997A"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet1/RouteTableAssociation"
-      }
-    },
-    "VpcPrivateSubnet1DefaultRouteBE02A9ED": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPrivateSubnet1RouteTableB2C5B500"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": {
-          "Ref": "VpcPublicSubnet1NATGateway4D7517AA"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet1/DefaultRoute"
-      }
-    },
-    "VpcPrivateSubnet2Subnet3788AAA1": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "CidrBlock": "192.168.192.0/18",
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "AvailabilityZone": {
-          "Fn::Select": [
-            1,
-            {
-              "Fn::GetAZs": ""
-            }
-          ]
-        },
-        "MapPublicIpOnLaunch": false,
-        "Tags": [
-          {
-            "Key": "aws-cdk:subnet-name",
-            "Value": "Private"
-          },
-          {
-            "Key": "aws-cdk:subnet-type",
-            "Value": "Private"
-          },
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PrivateSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet2/Subnet"
-      }
-    },
-    "VpcPrivateSubnet2RouteTableA678073B": {
-      "Type": "AWS::EC2::RouteTable",
-      "Properties": {
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc/PrivateSubnet2"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet2/RouteTable"
-      }
-    },
-    "VpcPrivateSubnet2RouteTableAssociationA89CAD56": {
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPrivateSubnet2RouteTableA678073B"
-        },
-        "SubnetId": {
-          "Ref": "VpcPrivateSubnet2Subnet3788AAA1"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet2/RouteTableAssociation"
-      }
-    },
-    "VpcPrivateSubnet2DefaultRoute060D2087": {
-      "Type": "AWS::EC2::Route",
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "VpcPrivateSubnet2RouteTableA678073B"
-        },
-        "DestinationCidrBlock": "0.0.0.0/0",
-        "NatGatewayId": {
-          "Ref": "VpcPublicSubnet2NATGateway9182C01D"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/PrivateSubnet2/DefaultRoute"
-      }
-    },
-    "VpcIGWD7BA715C": {
-      "Type": "AWS::EC2::InternetGateway",
-      "Properties": {
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "SagemakerStack/Vpc"
-          }
-        ]
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/IGW"
-      }
-    },
-    "VpcVPCGWBF912B6E": {
-      "Type": "AWS::EC2::VPCGatewayAttachment",
-      "Properties": {
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        },
-        "InternetGatewayId": {
-          "Ref": "VpcIGWD7BA715C"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/Vpc/VPCGW"
-      }
-    },
-    "SGADB53937": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "SagemakerStack/SG",
-        "SecurityGroupEgress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "Description": "Allow all outbound traffic by default",
-            "IpProtocol": "-1"
-          }
-        ],
-        "VpcId": {
-          "Ref": "Vpc8378EB38"
-        }
-      },
-      "Metadata": {
-        "aws:cdk:path": "SagemakerStack/SG/Resource"
-      }
-    },
     "SagemakerModel": {
       "Type": "AWS::SageMaker::Model",
       "Properties": {
@@ -514,38 +54,105 @@
             "Arn"
           ]
         },
+        "ModelName": {
+          "Fn::Join": [
+            "",
+            [
+              "model-",
+              {
+                "Ref": "model"
+              }
+            ]
+          ]
+        },
         "PrimaryContainer": {
           "Image": {
-            "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:d7770f879b1f370dc7330c58680c0533bc38d4d27c85469d926588b9e779f213"
+            "Fn::Sub": "${AWS::AccountId}.dkr.ecr.${AWS::Region}.${AWS::URLSuffix}/cdk-hnb659fds-container-assets-${AWS::AccountId}-${AWS::Region}:f60de15b7c8030c3135df990aeec2d56e75451ae468e56d2b8a3e327bf6b1e40"
           }
-        },
-        "VpcConfig": {
-          "SecurityGroupIds": [
-            {
-              "Fn::GetAtt": [
-                "SGADB53937",
-                "GroupId"
-              ]
-            }
-          ],
-          "Subnets": [
-            {
-              "Ref": "VpcPrivateSubnet1Subnet536B997A"
-            },
-            {
-              "Ref": "VpcPrivateSubnet2Subnet3788AAA1"
-            }
-          ]
         }
       },
       "Metadata": {
         "aws:cdk:path": "SagemakerStack/SagemakerModel"
       }
     },
+    "ModelEndpointConfig": {
+      "Type": "AWS::SageMaker::EndpointConfig",
+      "Properties": {
+        "ProductionVariants": [
+          {
+            "InitialInstanceCount": 1,
+            "InitialVariantWeight": 1,
+            "InstanceType": "ml.t2.medium",
+            "ModelName": {
+              "Fn::Join": [
+                "",
+                [
+                  "model-",
+                  {
+                    "Ref": "model"
+                  }
+                ]
+              ]
+            },
+            "VariantName": "production-medium"
+          }
+        ],
+        "EndpointConfigName": {
+          "Fn::Join": [
+            "",
+            [
+              "config-",
+              {
+                "Ref": "model"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": [
+        "SagemakerModel"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "SagemakerStack/ModelEndpointConfig"
+      }
+    },
+    "ModelEndpoint": {
+      "Type": "AWS::SageMaker::Endpoint",
+      "Properties": {
+        "EndpointConfigName": {
+          "Fn::Join": [
+            "",
+            [
+              "config-",
+              {
+                "Ref": "model"
+              }
+            ]
+          ]
+        },
+        "EndpointName": {
+          "Fn::Join": [
+            "",
+            [
+              "endpoint-",
+              {
+                "Ref": "model"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": [
+        "ModelEndpointConfig"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "SagemakerStack/ModelEndpoint"
+      }
+    },
     "CDKMetadata": {
       "Type": "AWS::CDK::Metadata",
       "Properties": {
-        "Analytics": "v2:deflate64:H4sIAAAAAAAA/02QwU7DMAyGn2X3NKCBhDiOgqYeQFWLdp3S1OtM26RKHKaq6rvjrEB38p/Pju3fW/ko7zfq4hNdt0mHlZxKUroVjI4TaHdU3gN5+Wp1Cy7rVQO7SATnZAGD9UjWjS/Kg0DVy6mwHYj0ZGKcuWorp8OgIznkqchD1aEuQ2W4BbNVFTYQfKpq+b3wlfFMq1ERWvNfHMVblsfwoWivCC5qFLnDb5Zr48wQONZ/Bcsmv68dsdtzD4ZECTo4pHHvbBiuO9yCWXi23is+guTcu62hm8X1FHywBk0jCvA2OL24v9GpNTXGzWeRj3S25u5BPsunzZdHTFwwhD3IYok/V9RtRZABAAA="
+        "Analytics": "v2:deflate64:H4sIAAAAAAAA/02OywrCQAxFv8X9NIoK4tLXwoUg9QNKnMYa25mUyYiU0n93WjeuLpyTe8kS1rCY4UczW9ZZw3fobxFtbQ4Pf8WAjiIFk3zRkw0FqlJUOIqtKZwdVrQbiUkOcmpFOUro9qhkGB30uTQ0To05GE33DlMT+sQuUlIzypMvW2EfD+IfXP2TYTDTfnqpYj+pnFTewU6rqVByZPGDuXbxKX6+gi1sZi9lzsLbR3YE+S+/eBhdLekAAAA="
       },
       "Metadata": {
         "aws:cdk:path": "SagemakerStack/CDKMetadata/Default"
@@ -745,13 +352,6 @@
           ]
         }
       ]
-    }
-  },
-  "Parameters": {
-    "BootstrapVersion": {
-      "Type": "AWS::SSM::Parameter::Value<String>",
-      "Default": "/cdk-bootstrap/hnb659fds/version",
-      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
     }
   },
   "Rules": {

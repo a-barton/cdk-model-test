@@ -7,10 +7,14 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_iam as iam,
     aws_sagemaker as sagemaker,
+    Environment,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
+from code_pipeline_stack import CodePipelineStack
 
 MODEL_NAME = "cdk-model-test"
+ACCOUNT = "149167650712"
+REGION = "ap-southeast-2"
 
 
 class SagemakerStack(Stack):
@@ -94,4 +98,7 @@ class SagemakerStack(Stack):
 
 app = App()
 SagemakerStack(app, "SagemakerStack")
+CodePipelineStack(
+    app, "CodePipelineStack", env=Environment(account=ACCOUNT, region=REGION)
+)
 app.synth()
