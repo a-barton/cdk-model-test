@@ -7,18 +7,16 @@ from aws_cdk import (
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 
-MODEL_NAME = "cdk-model-test"
-ACCOUNT = "149167650712"
-REGION = "ap-southeast-2"
-
 
 class SagemakerStack(Stack):
-    def __init__(self, app: App, id: str) -> None:
+    def __init__(self, app: App, id: str, config: dict) -> None:
         super().__init__(app, id)
+
+        MODEL_NAME = config["MODEL_NAME"]
 
         # Define resource name parameters
         model_name = CfnParameter(
-            self, "model", type="String", default="cdk-model-test",
+            self, "model", type="String", default=MODEL_NAME,
         ).value_as_string
 
         # Define Docker image for the model, referencing the local Dockerfile in the repo
@@ -45,7 +43,6 @@ class SagemakerStack(Stack):
             model_name=f'model-{model_name.replace("_","-").replace("/","--")}',
             execution_role_arn=sagemaker_execution_role.role_arn,
             primary_container=primary_container_definition,
-            # vpc_config=vpc_config,
         )
 
         model_endpoint_config = sagemaker.CfnEndpointConfig(

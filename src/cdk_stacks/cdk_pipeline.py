@@ -2,23 +2,23 @@ import aws_cdk as cdk
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
 from .sagemaker_app_stage import PipelineAppStage
 
-APP_ACCOUNT = "149167650712"
-APP_REGION = "ap-southeast-2"
-
 
 class PipelineStack(cdk.Stack):
-    def __init__(self, scope, id: str, **kwargs):
+    def __init__(self, scope, id: str, config: dict, **kwargs):
         super().__init__(scope, id, **kwargs)
+
+        ACCOUNT = config["ACCOUNT"]
+        REGION = config["REGION"]
+        GITHUB_OWNER = config["GITHUB_OWNER"]
+        GITHUB_REPO = config["GITHUB_REPO"]
 
         pipeline = CodePipeline(
             self,
-            "Pipeline",
+            "CDKModelPipeline",
             pipeline_name="CDKModelPipeline",
             synth=ShellStep(
                 "Synth",
-                input=CodePipelineSource.git_hub(
-                    "a-barton/cdk-model-test", "cdk-pipeline-test"
-                ),
+                input=CodePipelineSource.git_hub(GITHUB_OWNER, GITHUB_REPO),
                 commands=[
                     "npm install -g aws-cdk",
                     "python -m pip install -r build_requirements.txt",
@@ -31,7 +31,8 @@ class PipelineStack(cdk.Stack):
             PipelineAppStage(
                 self,
                 "test",
-                env=cdk.Environment(account=APP_ACCOUNT, region=APP_REGION),
+                config=config,
+                env=cdk.Environment(account=ACCOUNT, region=REGION),
             )
         )
 
