@@ -1,5 +1,6 @@
 import aws_cdk as cdk
 from aws_cdk.pipelines import CodePipeline, CodePipelineSource, ShellStep
+from sagemaker_app_stage import PipelineAppStage
 
 APP_ACCOUNT = "149167650712"
 APP_REGION = "ap-southeast-2"
@@ -24,5 +25,13 @@ class PipelineStack(cdk.Stack):
                     "cdk synth",
                 ],
             ),
+        )
+
+        pipeline.add_stage(
+            PipelineAppStage(
+                self,
+                "test",
+                env=cdk.Environment(account=APP_ACCOUNT, region=APP_REGION),
+            )
         )
 
