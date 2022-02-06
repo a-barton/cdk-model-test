@@ -15,7 +15,9 @@ class PipelineStack(cdk.Stack):
             pipeline_name="CDKModelPipeline",
             synth=ShellStep(
                 "Synth",
-                input=CodePipelineSource.git_hub("a-barton/cdk-model-test", "main"),
+                input=CodePipelineSource.git_hub(
+                    "a-barton/cdk-model-test", "cdk-pipeline-test"
+                ),
                 commands=[
                     "npm install -g aws-cdk",
                     "python -m pip install -r build_requirements.txt",
