@@ -3,5 +3,7 @@
     "REGION": "ap-southeast-2",
     "GITHUB_OWNER": "a-barton",
     "GITHUB_REPO": "cdk-model-test",
+    "BRANCH": "main",
+    "CODESTAR_ARN": "arn:aws:codestar-connections:ap-southeast-2:149167650712:connection/5c03f24e-e7d3-4991-bf69-cf992dc04140",
     "MODEL_NAME": "cdk-model-test"
 }

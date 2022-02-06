@@ -11,6 +11,9 @@ class PipelineStack(cdk.Stack):
         REGION = config["REGION"]
         GITHUB_OWNER = config["GITHUB_OWNER"]
         GITHUB_REPO = config["GITHUB_REPO"]
+        BRANCH = config["BRANCH"]
+        CODESTAR_ARN = config["CODESTAR_ARN"]
+        MODEL_NAME = config["MODEL_NAME"]
 
         pipeline = CodePipeline(
             self,
@@ -18,7 +21,11 @@ class PipelineStack(cdk.Stack):
             pipeline_name="CDKModelPipeline",
             synth=ShellStep(
                 "Synth",
-                input=CodePipelineSource.git_hub(GITHUB_OWNER, GITHUB_REPO),
+                input=CodePipelineSource.connection(
+                    repo_string=f"{GITHUB_OWNER}/{GITHUB_REPO}",
+                    branch=BRANCH,
+                    connection_arn=CODESTAR_ARN,
+                ),
                 commands=[
                     "npm install -g aws-cdk",
                     "python -m pip install -r build_requirements.txt",
@@ -30,7 +37,7 @@ class PipelineStack(cdk.Stack):
         pipeline.add_stage(
             PipelineAppStage(
                 self,
-                "test",
+                MODEL_NAME,
                 config=config,
                 env=cdk.Environment(account=ACCOUNT, region=REGION),
             )
