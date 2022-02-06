@@ -1,6 +1,6 @@
 import aws_cdk as cdk
 from constructs import Construct
-from sagemaker_stack import SagemakerStack
+from .sagemaker_stack import SagemakerStack
 
 
 class PipelineAppStage(cdk.Stage):
