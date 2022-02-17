@@ -1,9 +1,15 @@
+import os
 from aws_cdk import (
     CfnParameter,
     Stack,
     App,
     aws_iam as iam,
     aws_sagemaker as sagemaker,
+    aws_lambda as _lambda,
+    aws_stepfunctions as _aws_stepfunctions,
+    aws_stepfunctions_tasks as _aws_stepfunctions_tasks,
+    aws_s3,
+    aws_s3_deployment,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 
@@ -14,7 +20,11 @@ class SagemakerStack(Stack):
 
         MODEL_NAME = config["MODEL_NAME"]
 
-        # Define resource name parameters
+        #########################
+        ## Sagemaker resources ##
+        #########################
+
+        # Define Cloudformation parameters
         model_name = CfnParameter(
             self, "model", type="String", default=MODEL_NAME,
         ).value_as_string
@@ -25,18 +35,48 @@ class SagemakerStack(Stack):
             image=asset.image_uri,
         )
 
+        # Define S3 bucket for modelling data/artifacts
+        bucket = aws_s3.Bucket(self, "S3Bucket", bucket_name=f"{model_name}-bucket")
+
+        # Add training data to the S3 bucket
+        __dirname = os.path.dirname(os.path.realpath(__file__))
+        training_data_bucket_deployment = aws_s3_deployment.BucketDeployment(
+            self,
+            "TrainingData",
+            sources=[
+                aws_s3_deployment.Source.asset(
+                    os.path.join(__dirname, "../../data/iris.csv")
+                )
+            ],
+            destination_bucket=bucket,
+        )
+
         # Execution role that SageMaker will assume to run the model
         sagemaker_execution_role = iam.Role(
             self,
             "SageMakerExecutionRole",
             assumed_by=iam.ServicePrincipal("sagemaker.amazonaws.com"),
+            inline_policies=[
+                iam.PolicyDocument(
+                    statements=[
+                        iam.PolicyStatement(
+                            actions=["s3:*"],
+                            resources=[
+                                f"{bucket.bucket_arn}",
+                                f"{bucket.bucket_arn}/*",
+                            ],
+                        )
+                    ]
+                )
+            ],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "AmazonSageMakerFullAccess"
-                )
+                    "AmazonSageMakerFullAccess",
+                ),
             ],
         )
 
+        # Sagemaker model itself, referencing container definition from above and execution role
         sagemaker_model = sagemaker.CfnModel(
             self,
             "SagemakerModel",
@@ -45,6 +85,7 @@ class SagemakerStack(Stack):
             primary_container=primary_container_definition,
         )
 
+        # Endpoint configuration, referencing the model created above
         model_endpoint_config = sagemaker.CfnEndpointConfig(
             self,
             "ModelEndpointConfig",
@@ -60,6 +101,7 @@ class SagemakerStack(Stack):
             ],
         )
 
+        # Endpoint, referencing the endpoint configuration created above
         model_endpoint = sagemaker.CfnEndpoint(
             self,
             "ModelEndpoint",
@@ -69,3 +111,35 @@ class SagemakerStack(Stack):
 
         model_endpoint_config.node.add_dependency(sagemaker_model)
         model_endpoint.node.add_dependency(model_endpoint_config)
+
+        ###########################
+        ## Stepfunction workflow ##
+        ###########################
+
+        training_job_config = {
+            "algorithm_name": MODEL_NAME,
+            "role_arn": sagemaker_execution_role.role_arn,
+            "train_data_uri": config["train_data_uri"],
+            "resource_config": {
+                "instance_type": "ml.t2.medium",
+                "instance_count": 1,
+                "volume_size": 10,
+            },
+            "use_spot_training": True,
+        }
+
+        training_submit_lambda = _lambda.Function(
+            self,
+            "submitTrainingLambda",
+            handler="app.lambda_handler",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            code=_lambda.Code.from_asset("src/lambdas/submit_training.py"),
+        )
+
+        training_submit_job = _aws_stepfunctions_tasks.LambdaInvoke(
+            self,
+            "TrainingSubmitJob",
+            lambda_function=training_submit_lambda,
+            payload=_aws_stepfunctions_tasks.TaskInput.from_object(training_job_config),
+        )
+
