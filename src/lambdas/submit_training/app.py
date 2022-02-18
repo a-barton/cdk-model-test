@@ -4,6 +4,8 @@ import datetime
 
 def lambda_handler(event, context):
 
+    print([item for item in event.items()])
+
     model_name = event["model_name"]
     role_arn = event["role_arn"]
     train_data_uri = event["train_data_uri"]

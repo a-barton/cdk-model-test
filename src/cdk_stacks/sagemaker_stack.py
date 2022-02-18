@@ -10,6 +10,7 @@ from aws_cdk import (
     aws_stepfunctions_tasks as _aws_stepfunctions_tasks,
     aws_s3,
     aws_s3_deployment,
+    RemovalPolicy,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 
@@ -36,7 +37,13 @@ class SagemakerStack(Stack):
         )
 
         # Define S3 bucket for modelling data/artifacts
-        bucket = aws_s3.Bucket(self, "S3Bucket", bucket_name=f"{model_name}-bucket")
+        bucket = aws_s3.Bucket(
+            self,
+            "S3Bucket",
+            bucket_name=f"{model_name}-bucket",
+            removal_policy=RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+        )
 
         # Add training data to the S3 bucket
         __dirname = os.path.dirname(os.path.realpath(__file__))
@@ -45,7 +52,7 @@ class SagemakerStack(Stack):
             "TrainingData",
             sources=[
                 aws_s3_deployment.Source.asset(
-                    os.path.join(__dirname, "../../data/iris.csv")
+                    os.path.join(__dirname, "../../data/train/")
                 )
             ],
             destination_bucket=bucket,
@@ -86,40 +93,40 @@ class SagemakerStack(Stack):
         )
 
         # Endpoint configuration, referencing the model created above
-        model_endpoint_config = sagemaker.CfnEndpointConfig(
-            self,
-            "ModelEndpointConfig",
-            endpoint_config_name=f'config-{model_name.replace("_","-").replace("/","--")}',
-            production_variants=[
-                sagemaker.CfnEndpointConfig.ProductionVariantProperty(
-                    model_name=sagemaker_model.model_name,
-                    initial_instance_count=1,
-                    initial_variant_weight=1.0,
-                    instance_type="ml.t2.medium",
-                    variant_name="production-medium",
-                )
-            ],
-        )
+        # model_endpoint_config = sagemaker.CfnEndpointConfig(
+        #     self,
+        #     "ModelEndpointConfig",
+        #     endpoint_config_name=f'config-{model_name.replace("_","-").replace("/","--")}',
+        #     production_variants=[
+        #         sagemaker.CfnEndpointConfig.ProductionVariantProperty(
+        #             model_name=sagemaker_model.model_name,
+        #             initial_instance_count=1,
+        #             initial_variant_weight=1.0,
+        #             instance_type="ml.t2.medium",
+        #             variant_name="production-medium",
+        #         )
+        #     ],
+        # )
 
         # Endpoint, referencing the endpoint configuration created above
-        model_endpoint = sagemaker.CfnEndpoint(
-            self,
-            "ModelEndpoint",
-            endpoint_name=f'endpoint-{model_name.replace("_","-").replace("/","--")}',
-            endpoint_config_name=model_endpoint_config.endpoint_config_name,
-        )
+        # model_endpoint = sagemaker.CfnEndpoint(
+        #     self,
+        #     "ModelEndpoint",
+        #     endpoint_name=f'endpoint-{model_name.replace("_","-").replace("/","--")}',
+        #     endpoint_config_name=model_endpoint_config.endpoint_config_name,
+        # )
 
-        model_endpoint_config.node.add_dependency(sagemaker_model)
-        model_endpoint.node.add_dependency(model_endpoint_config)
+        # model_endpoint_config.node.add_dependency(sagemaker_model)
+        # model_endpoint.node.add_dependency(model_endpoint_config)
 
         ###########################
         ## Stepfunction workflow ##
         ###########################
 
         training_job_config = {
-            "algorithm_name": MODEL_NAME,
+            "model_name": MODEL_NAME,
             "role_arn": sagemaker_execution_role.role_arn,
-            "train_data_uri": config["train_data_uri"],
+            "train_data_uri": bucket.s3_url_for_object(key="iris.csv"),
             "resource_config": {
                 "instance_type": "ml.t2.medium",
                 "instance_count": 1,
@@ -133,13 +140,17 @@ class SagemakerStack(Stack):
             "submitTrainingLambda",
             handler="app.lambda_handler",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset("src/lambdas/submit_training.py"),
+            code=_lambda.Code.from_asset("src/lambdas/submit_training/"),
         )
 
-        training_submit_job = _aws_stepfunctions_tasks.LambdaInvoke(
+        step_function = _aws_stepfunctions.StateMachine(
             self,
-            "TrainingSubmitJob",
-            lambda_function=training_submit_lambda,
-            payload=_aws_stepfunctions_tasks.TaskInput.from_object(training_job_config),
+            "StepFunction",
+            definition=_aws_stepfunctions_tasks.LambdaInvoke(
+                self,
+                "TrainingSubmitJob",
+                lambda_function=training_submit_lambda,
+                payload=_aws_stepfunctions.TaskInput.from_object(training_job_config),
+            ).next(_aws_stepfunctions.Succeed(self, "Success")),
         )
 
