@@ -31,9 +31,11 @@ class SagemakerStack(Stack):
         ).value_as_string
 
         # Define Docker image for the model, referencing the local Dockerfile in the repo
-        asset = DockerImageAsset(self, "MLInferenceImage", directory="src/container")
+        docker_image_asset = DockerImageAsset(
+            self, "MLInferenceImage", directory="src/container"
+        )
         primary_container_definition = sagemaker.CfnModel.ContainerDefinitionProperty(
-            image=asset.image_uri,
+            image=docker_image_asset.image_uri,
         )
 
         # Define S3 bucket for modelling data/artifacts
@@ -72,9 +74,17 @@ class SagemakerStack(Stack):
                                 f"{bucket.bucket_arn}",
                                 f"{bucket.bucket_arn}/*",
                             ],
-                        )
+                        ),
+                        iam.PolicyStatement(
+                            actions=[
+                                "ecr:BatchCheckLayerAvailability",
+                                "ecr:BatchGetImage",
+                                "ecr:GetDownloadUrlForLayer",
+                            ],
+                            resources=["*"],
+                        ),
                     ]
-                )
+                ),
             ],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name(
@@ -124,16 +134,41 @@ class SagemakerStack(Stack):
         ###########################
 
         training_job_config = {
+            "training_image": docker_image_asset.image_uri,
             "model_name": MODEL_NAME,
             "role_arn": sagemaker_execution_role.role_arn,
-            "train_data_uri": bucket.s3_url_for_object(key="iris.csv"),
+            "train_data_uri": bucket.s3_url_for_object(),
             "resource_config": {
-                "instance_type": "ml.t2.medium",
+                "instance_type": "ml.m5.large",
                 "instance_count": 1,
                 "volume_size": 10,
             },
             "use_spot_training": True,
         }
+
+        training_submit_lambda_role = iam.Role(
+            self,
+            "submitTrainingLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+        )
+
+        training_submit_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "sagemaker:CreateTrainingJob",
+                    "sagemaker:DescribeTrainingJob",
+                ],
+                resources=["*"],
+            ),
+        )
+        training_submit_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["iam:PassRole"],
+                resources=[sagemaker_execution_role.role_arn],
+            ),
+        )
 
         training_submit_lambda = _lambda.Function(
             self,
@@ -141,6 +176,7 @@ class SagemakerStack(Stack):
             handler="app.lambda_handler",
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=_lambda.Code.from_asset("src/lambdas/submit_training/"),
+            role=training_submit_lambda_role,
         )
 
         step_function = _aws_stepfunctions.StateMachine(
