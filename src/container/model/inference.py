@@ -1,5 +1,6 @@
 import joblib
 import pandas as pd
+import os
 
 
 def predict(df):
@@ -10,6 +11,8 @@ def predict(df):
 
 
 def load_model():
+    print(f"Working dir right before loading model: {os.getcwd()}")
+    print(f"Contents of working dir: {os.listdir()}")
     model = joblib.load("/opt/ml/model/model.joblib")
     scaler = joblib.load("/opt/ml/model/scaler.joblib")
     label_encoder = joblib.load("/opt/ml/model/label_encoder.joblib")
