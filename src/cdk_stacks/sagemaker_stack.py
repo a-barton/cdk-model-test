@@ -58,6 +58,21 @@ class SagemakerStack(Stack):
                 )
             ],
             destination_bucket=bucket,
+            destination_key_prefix="train",
+        )
+
+        # Add test batch inference data to the S3 bucket
+        __dirname = os.path.dirname(os.path.realpath(__file__))
+        inference_data_bucket_deployment = aws_s3_deployment.BucketDeployment(
+            self,
+            "InferenceData",
+            sources=[
+                aws_s3_deployment.Source.asset(
+                    os.path.join(__dirname, "../../data/batch_inference/")
+                )
+            ],
+            destination_bucket=bucket,
+            destination_key_prefix="batch_inference",
         )
 
         # Execution role that SageMaker will assume to run the model
@@ -94,13 +109,13 @@ class SagemakerStack(Stack):
         )
 
         # Sagemaker model itself, referencing container definition from above and execution role
-        sagemaker_model = sagemaker.CfnModel(
-            self,
-            "SagemakerModel",
-            model_name=f'model-{model_name.replace("_","-").replace("/","--")}',
-            execution_role_arn=sagemaker_execution_role.role_arn,
-            primary_container=primary_container_definition,
-        )
+        # sagemaker_model = sagemaker.CfnModel(
+        #     self,
+        #     "SagemakerModel",
+        #     model_name=f'model-{model_name.replace("_","-").replace("/","--")}',
+        #     execution_role_arn=sagemaker_execution_role.role_arn,
+        #     primary_container=primary_container_definition,
+        # )
 
         # Endpoint configuration, referencing the model created above
         # model_endpoint_config = sagemaker.CfnEndpointConfig(
@@ -129,15 +144,15 @@ class SagemakerStack(Stack):
         # model_endpoint_config.node.add_dependency(sagemaker_model)
         # model_endpoint.node.add_dependency(model_endpoint_config)
 
-        ###########################
-        ## Stepfunction workflow ##
-        ###########################
+        ####################################
+        ## Training Stepfunction workflow ##
+        ####################################
 
         training_job_config = {
             "training_image": docker_image_asset.image_uri,
             "model_name": MODEL_NAME,
             "role_arn": sagemaker_execution_role.role_arn,
-            "train_data_uri": bucket.s3_url_for_object(),
+            "train_data_uri": bucket.s3_url_for_object(key="train"),
             "resource_config": {
                 "instance_type": "ml.m5.large",
                 "instance_count": 1,
@@ -179,14 +194,72 @@ class SagemakerStack(Stack):
             role=training_submit_lambda_role,
         )
 
-        step_function = _aws_stepfunctions.StateMachine(
+        training_step_function = _aws_stepfunctions.StateMachine(
             self,
-            "StepFunction",
+            "TrainingStepFunction",
             definition=_aws_stepfunctions_tasks.LambdaInvoke(
                 self,
                 "TrainingSubmitJob",
                 lambda_function=training_submit_lambda,
                 payload=_aws_stepfunctions.TaskInput.from_object(training_job_config),
-            ).next(_aws_stepfunctions.Succeed(self, "Success")),
+            ).next(_aws_stepfunctions.Succeed(self, "TrainingSuccessStep")),
+        )
+
+        #####################################
+        ## Inference Stepfunction workflow ##
+        #####################################
+
+        inference_job_config = {
+            "model_name": MODEL_NAME,
+            "inference_data_uri": bucket.s3_url_for_object(key="batch_inference"),
+            "resource_config": {"instance_type": "ml.m5.large", "instance_count": 1,},
+        }
+
+        inference_submit_lambda_role = iam.Role(
+            self,
+            "submitBatchInferenceLambdaRole",
+            assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+        )
+
+        inference_submit_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "sagemaker:CreateTransformJob",
+                    "sagemaker:DescribeTransformJob",
+                    "sagemaker:ListModels",
+                    "sagemaker:ListTrainingJobs",
+                    "sagemaker:CreateModel",
+                    "sagemaker:DescribeTrainingJob",
+                ],
+                resources=["*"],
+            ),
+        )
+        inference_submit_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["iam:PassRole"],
+                resources=[sagemaker_execution_role.role_arn],
+            ),
+        )
+
+        inference_submit_lambda = _lambda.Function(
+            self,
+            "submitBatchInferenceLambda",
+            handler="app.lambda_handler",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            code=_lambda.Code.from_asset("src/lambdas/submit_batch_inference/"),
+            role=inference_submit_lambda_role,
+        )
+
+        inference_step_function = _aws_stepfunctions.StateMachine(
+            self,
+            "BatchInferenceStepFunction",
+            definition=_aws_stepfunctions_tasks.LambdaInvoke(
+                self,
+                "BatchInferenceSubmitJob",
+                lambda_function=inference_submit_lambda,
+                payload=_aws_stepfunctions.TaskInput.from_object(inference_job_config),
+            ).next(_aws_stepfunctions.Succeed(self, "InferenceSuccessStep")),
         )
 
