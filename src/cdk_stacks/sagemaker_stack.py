@@ -1,4 +1,5 @@
 import os
+import datetime
 from aws_cdk import (
     CfnParameter,
     Stack,
@@ -6,11 +7,13 @@ from aws_cdk import (
     aws_iam as iam,
     aws_sagemaker as sagemaker,
     aws_lambda as _lambda,
-    aws_stepfunctions as _aws_stepfunctions,
-    aws_stepfunctions_tasks as _aws_stepfunctions_tasks,
+    aws_stepfunctions as sfn,
+    aws_stepfunctions_tasks as tasks,
     aws_s3,
     aws_s3_deployment,
     RemovalPolicy,
+    aws_ec2 as ec2,
+    Size,
 )
 from aws_cdk.aws_ecr_assets import DockerImageAsset
 
@@ -31,12 +34,12 @@ class SagemakerStack(Stack):
         ).value_as_string
 
         # Define Docker image for the model, referencing the local Dockerfile in the repo
-        docker_image_asset = DockerImageAsset(
-            self, "MLInferenceImage", directory="src/container"
-        )
-        primary_container_definition = sagemaker.CfnModel.ContainerDefinitionProperty(
-            image=docker_image_asset.image_uri,
-        )
+        # docker_image_asset = DockerImageAsset(
+        #     self, "MLInferenceImage", directory="src/container"
+        # )
+        # primary_container_definition = sagemaker.CfnModel.ContainerDefinitionProperty(
+        #     image=docker_image_asset.image_uri,
+        # )
 
         # Define S3 bucket for modelling data/artifacts
         bucket = aws_s3.Bucket(
@@ -62,7 +65,6 @@ class SagemakerStack(Stack):
         )
 
         # Add test batch inference data to the S3 bucket
-        __dirname = os.path.dirname(os.path.realpath(__file__))
         inference_data_bucket_deployment = aws_s3_deployment.BucketDeployment(
             self,
             "InferenceData",
@@ -97,6 +99,9 @@ class SagemakerStack(Stack):
                                 "ecr:GetDownloadUrlForLayer",
                             ],
                             resources=["*"],
+                        ),
+                        iam.PolicyStatement(
+                            actions=["sagemaker:CreateModel"], resources=["*"],
                         ),
                     ]
                 ),
@@ -148,61 +153,99 @@ class SagemakerStack(Stack):
         ## Training Stepfunction workflow ##
         ####################################
 
-        training_job_config = {
-            "training_image": docker_image_asset.image_uri,
-            "model_name": MODEL_NAME,
-            "role_arn": sagemaker_execution_role.role_arn,
-            "train_data_uri": bucket.s3_url_for_object(key="train"),
-            "resource_config": {
-                "instance_type": "ml.m5.large",
-                "instance_count": 1,
-                "volume_size": 10,
-            },
-            "use_spot_training": True,
-        }
-
-        training_submit_lambda_role = iam.Role(
+        training_submit_task = tasks.SageMakerCreateTrainingJob(
             self,
-            "submitTrainingLambdaRole",
+            "submitTrainingTask",
+            integration_pattern=sfn.IntegrationPattern.RUN_JOB,
+            training_job_name=sfn.JsonPath.string_at("$.JobName"),
+            role=sagemaker_execution_role,
+            algorithm_specification=tasks.AlgorithmSpecification(
+                training_image=tasks.DockerImage.from_asset(
+                    self, "CDKModelImage", directory="src/container",
+                ),
+                training_input_mode=tasks.InputMode.FILE,
+            ),
+            input_data_config=[
+                tasks.Channel(
+                    channel_name="train",
+                    data_source=tasks.DataSource(
+                        s3_data_source=tasks.S3DataSource(
+                            s3_data_type=tasks.S3DataType.S3_PREFIX,
+                            s3_location=tasks.S3Location.from_bucket(
+                                bucket, key_prefix="train"
+                            ),
+                        )
+                    ),
+                )
+            ],
+            output_data_config=tasks.OutputDataConfig(
+                s3_output_location=tasks.S3Location.from_bucket(
+                    bucket, key_prefix="training_output"
+                ),
+            ),
+            resource_config=tasks.ResourceConfig(
+                instance_type=ec2.InstanceType("m5.large"),
+                instance_count=1,
+                volume_size=Size.gibibytes(10),
+            ),
+            result_path="$.TrainingJobResponse",
+        )
+
+        get_training_image_lambda_role = iam.Role(
+            self,
+            "getTrainingImageLambdaRole",
             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
         )
 
-        training_submit_lambda_role.add_to_policy(
+        get_training_image_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
-                actions=[
-                    "sagemaker:CreateTrainingJob",
-                    "sagemaker:DescribeTrainingJob",
-                ],
+                actions=["sagemaker:DescribeTrainingJob",],
                 resources=["*"],
             ),
         )
-        training_submit_lambda_role.add_to_policy(
-            iam.PolicyStatement(
-                effect=iam.Effect.ALLOW,
-                actions=["iam:PassRole"],
-                resources=[sagemaker_execution_role.role_arn],
+
+        get_training_image_lambda = _lambda.Function(
+            self,
+            "getTrainingImageLambda",
+            handler="app.lambda_handler",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            code=_lambda.Code.from_asset("src/lambdas/get_training_image/"),
+            role=get_training_image_lambda_role,
+        )
+
+        get_training_image_task = tasks.LambdaInvoke(
+            self,
+            "getTrainingImageTask",
+            lambda_function=get_training_image_lambda,
+            payload=sfn.TaskInput.from_json_path_at("$.TrainingJobResponse"),
+            result_path="$.TrainingJob.Details",
+        )
+
+        create_model_task = tasks.SageMakerCreateModel(
+            self,
+            "createModelTask",
+            model_name=sfn.JsonPath.string_at("$.ModelName"),
+            primary_container=tasks.ContainerDefinition(
+                image=tasks.DockerImage.from_json_expression(
+                    sfn.JsonPath.string_at(
+                        "$.TrainingJob.Details.Payload.TrainingImage"
+                    )
+                ),
+                mode=tasks.Mode.SINGLE_MODEL,
+                model_s3_location=tasks.S3Location.from_json_expression(
+                    "$.TrainingJob.Details.Payload.S3ModelArtifactsURI"
+                ),
             ),
         )
 
-        training_submit_lambda = _lambda.Function(
-            self,
-            "submitTrainingLambda",
-            handler="app.lambda_handler",
-            runtime=_lambda.Runtime.PYTHON_3_9,
-            code=_lambda.Code.from_asset("src/lambdas/submit_training/"),
-            role=training_submit_lambda_role,
+        training_step_function_definition = (
+            training_submit_task.next(get_training_image_task)
+            .next(create_model_task)
+            .next(sfn.Succeed(self, "TrainingSuccessStep"))
         )
-
-        training_step_function = _aws_stepfunctions.StateMachine(
-            self,
-            "TrainingStepFunction",
-            definition=_aws_stepfunctions_tasks.LambdaInvoke(
-                self,
-                "TrainingSubmitJob",
-                lambda_function=training_submit_lambda,
-                payload=_aws_stepfunctions.TaskInput.from_object(training_job_config),
-            ).next(_aws_stepfunctions.Succeed(self, "TrainingSuccessStep")),
+        training_step_function = sfn.StateMachine(
+            self, "TrainingStepFunction", definition=training_step_function_definition,
         )
 
         #####################################
@@ -252,14 +295,14 @@ class SagemakerStack(Stack):
             role=inference_submit_lambda_role,
         )
 
-        inference_step_function = _aws_stepfunctions.StateMachine(
+        inference_step_function = sfn.StateMachine(
             self,
             "BatchInferenceStepFunction",
-            definition=_aws_stepfunctions_tasks.LambdaInvoke(
+            definition=tasks.LambdaInvoke(
                 self,
                 "BatchInferenceSubmitJob",
                 lambda_function=inference_submit_lambda,
-                payload=_aws_stepfunctions.TaskInput.from_object(inference_job_config),
-            ).next(_aws_stepfunctions.Succeed(self, "InferenceSuccessStep")),
+                payload=sfn.TaskInput.from_object(inference_job_config),
+            ).next(sfn.Succeed(self, "InferenceSuccessStep")),
         )
 
